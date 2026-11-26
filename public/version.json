@@ -1,0 +1,11 @@
+{
+  "web": "202611241824-pxgs",
+  "releasedAt": "2026-11-24T18:24:45.772Z",
+  "notes": "New piece designs: every piece now has its own shape.",
+  "apk": {
+    "versionCode": 2,
+    "versionName": "1.1",
+    "url": "/downloads/kara.apk",
+    "sizeMB": 3.3
+  }
+}

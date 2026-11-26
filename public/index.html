@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="kara-build" content="202611241824-pxgs">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>KĀRA: Towers of Dawn & Eclipse</title>
+  <meta name="description" content="KĀRA: a 9×9 strategy board game. Three game types (Simple, Eclipse and Towers). Play online or against the computer.">
+  <meta name="theme-color" content="#262522">
+
+  <!-- Installable app (PWA) -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="KĀRA">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- Fonts are bundled locally so the game works offline -->
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="online.css">
+  <link rel="stylesheet" href="pieces.css">
+</head>
+<body class="chess-theme">
+  <!-- Shared colours for the piece artwork (js/piece-art.js) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="karaDawnFill" x1="0.2" y1="0" x2="0.8" y2="1">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset="0.55" stop-color="#f1eee4"/>
+        <stop offset="1" stop-color="#cbc5b2"/>
+      </linearGradient>
+      <linearGradient id="karaDuskFill" x1="0.2" y1="0" x2="0.8" y2="1">
+        <stop offset="0" stop-color="#6a6660"/>
+        <stop offset="0.5" stop-color="#34322e"/>
+        <stop offset="1" stop-color="#141311"/>
+      </linearGradient>
+      <radialGradient id="karaAura" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#f7b21b" stop-opacity="0.5"/>
+        <stop offset="0.6" stop-color="#f7b21b" stop-opacity="0.18"/>
+        <stop offset="1" stop-color="#f7b21b" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+  </svg>
+  <div class="chess-app-container">
+
+    <!-- 1. LEFT NAVIGATION RAIL (Chess.com Style) -->
+    <nav class="nav-rail">
+      <div class="rail-top">
+        <!-- Logo -->
+        <a class="rail-logo" href="#" title="KĀRA">
+          <div class="logo-icon">🏯</div>
+          <span class="logo-text">KĀRA</span>
+        </a>
+
+        <!-- Main Navigation Links -->
+        <ul class="rail-menu">
+          <li class="rail-item active" data-view="play" id="railPlayBtn">
+            <span class="rail-icon">♟</span>
+            <span class="rail-label">Play</span>
+          </li>
+          <li class="rail-item rail-desktop-only" data-view="ai" id="railAiBtn">
+            <span class="rail-icon">🤖</span>
+            <span class="rail-label">AI Match</span>
+          </li>
+          <li class="rail-item" data-view="rules" id="railRulesBtn">
+            <span class="rail-icon">📖</span>
+            <span class="rail-label">Rules</span>
+          </li>
+          <li class="rail-item rail-desktop-only" data-view="compendium" id="railCompBtn">
+            <span class="rail-icon">📜</span>
+            <span class="rail-label">Pieces</span>
+          </li>
+          <li class="rail-item" data-view="leaderboard" id="railLeaderboardBtn">
+            <span class="rail-icon">🏆</span>
+            <span class="rail-label">Ranks</span>
+          </li>
+          <li class="rail-item rail-desktop-only" data-view="app" id="railAppBtn">
+            <span class="rail-icon">📲</span>
+            <span class="rail-label">Get App</span>
+          </li>
+          <!-- Mobile only: opens the game panel (moves, tower, settings) as a bottom sheet -->
+          <li class="rail-item rail-mobile-only" data-view="panel" id="railPanelBtn">
+            <span class="rail-icon">☰</span>
+            <span class="rail-label">Game</span>
+          </li>
+          <!-- Mobile only: your profile -->
+          <li class="rail-item rail-mobile-only" data-view="profile" id="railProfileBtn">
+            <span class="rail-icon rail-avatar-icon" id="railProfileIcon">👤</span>
+            <span class="rail-label">Me</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Rail Bottom User / Quick Controls -->
+      <div class="rail-bottom">
+        <button class="rail-quick-btn" id="btnAudioToggle" title="Toggle Sound">
+          <span class="rail-icon" id="audioIcon">🔊</span>
+        </button>
+        <button class="rail-quick-btn" id="btn3DToggle" title="Toggle 2.5D Isometric Board View">
+          <span class="rail-icon">⬡</span>
+        </button>
+        <button class="rail-user-profile" id="railUserBtn" title="Your profile">
+          <div class="user-avatar" id="railUserAvatar">👤</div>
+          <div class="user-meta">
+            <span class="user-name" id="railUserName">Guest</span>
+            <span class="user-status" id="railUserRating">Offline</span>
+          </div>
+        </button>
+      </div>
+    </nav>
+
+    <!-- 2. CENTER STAGE: THE BOARD COLUMN -->
+    <main class="board-column">
+
+      <!-- Mobile only: compact status line (the full status strip lives in the side panel) -->
+      <div class="mobile-status" id="mobileStatus" aria-live="polite">
+        <span class="status-indicator-dot" id="mobileStatusDot"></span>
+        <span class="mobile-status-text" id="mobileStatusText">Ready</span>
+        <span class="variant-badge" id="mobileVariantBadge"></span>
+      </div>
+
+      <!-- Top Player Bar (Dusk / Opponent / AI) -->
+      <div class="player-bar top-player" id="topPlayerBar">
+        <div class="player-info">
+          <div class="player-avatar dusk-avatar" id="duskAvatar">☽</div>
+          <div class="player-details">
+            <div class="player-name-row">
+              <span class="player-name" id="duskPlayerName">Dusk (AI)</span>
+              <span class="player-rating" id="duskPlayerRating"></span>
+            </div>
+            <!-- Captured Pieces Tray by Dusk -->
+            <div class="captured-pieces" id="duskCapturedTray"></div>
+          </div>
+        </div>
+        <div class="player-clock-wrap">
+          <div class="chess-clock" id="duskClock">10:00</div>
+          <button class="bar-gear-btn" id="btnTopOptions" title="Options">⚙</button>
+        </div>
+      </div>
+
+      <!-- The 9x9 Board & Perspective Container -->
+      <div class="board-perspective-wrapper" id="boardPerspectiveWrapper">
+        <div class="board-frame">
+          <div class="koro-board" id="koroBoard">
+            <!-- 81 Squares dynamically generated with embedded rank/file notation -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Player Bar (Dawn / You) -->
+      <div class="player-bar bottom-player" id="bottomPlayerBar">
+        <div class="player-info">
+          <div class="player-avatar dawn-avatar" id="dawnAvatar">☀</div>
+          <div class="player-details">
+            <div class="player-name-row">
+              <span class="player-name" id="dawnPlayerName">Dawn (You)</span>
+              <span class="player-rating" id="dawnPlayerRating"></span>
+            </div>
+            <!-- Captured Pieces Tray by Dawn -->
+            <div class="captured-pieces" id="dawnCapturedTray"></div>
+          </div>
+        </div>
+        <div class="player-clock-wrap">
+          <div class="chess-clock active-clock" id="dawnClock">10:00</div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- 3. RIGHT PANEL: GAME PANEL & CHRONICLE (Chess.com Style) -->
+    <aside class="game-panel" id="gamePanel">
+
+      <!-- Mobile only: bottom-sheet header -->
+      <div class="panel-sheet-header">
+        <span class="sheet-grabber"></span>
+        <button class="sheet-close-btn" id="btnClosePanel" aria-label="Close panel">✕</button>
+      </div>
+
+      <!-- Top Panel Header Tabs -->
+      <div class="panel-top-tabs">
+        <button class="panel-tab active" data-panel="tab-moves" id="tabBtnMoves">
+          <span class="tab-icon">⏱</span> Moves
+        </button>
+        <button class="panel-tab" data-panel="tab-inspector" id="tabBtnInspector">
+          <span class="tab-icon">🔍</span> Tower
+        </button>
+        <button class="panel-tab" data-panel="tab-settings" id="tabBtnSettings">
+          <span class="tab-icon">⚙</span> Game
+        </button>
+      </div>
+
+      <!-- Sub-Tab Content 1: Moves List -->
+      <div class="panel-subview active" id="viewMoves">
+        
+        <!-- Game Status Banner -->
+        <div class="game-status-strip" id="gameStatusStrip">
+          <span class="status-indicator-dot" id="statusDot"></span>
+          <span class="status-text" id="statusText">Game Ready</span>
+          <span class="variant-badge" id="variantBadge"></span>
+        </div>
+
+        <!-- AI vs AI Spectator Controls Toolbar (visible when CVC mode is selected) -->
+        <div class="ai-battle-toolbar" id="aiBattleToolbar" style="display: none;">
+          <div class="ai-toolbar-header">
+            <span class="ai-mode-tag">AI vs AI Battle</span>
+            <div class="ai-speed-picker">
+              <label>Speed:</label>
+              <select id="selectAiSpeed" class="form-select-sm">
+                <option value="1500">1.5s</option>
+                <option value="800" selected>0.8s</option>
+                <option value="350">0.35s</option>
+                <option value="100">0.1s</option>
+              </select>
+            </div>
+          </div>
+          <div class="ai-toolbar-btns">
+            <button class="btn btn-green btn-full" id="btnAiPlayToggle">
+              <span id="aiPlayIcon">▶</span> <span id="aiPlayText">Start AI Match</span>
+            </button>
+            <button class="btn btn-secondary" id="btnAiStep" title="Advance 1 AI Move">
+              <span>⏭</span> Step
+            </button>
+          </div>
+        </div>
+
+        <!-- Moves Chronicle Table (Chess.com notation list) -->
+        <div class="moves-scroll-area" id="movesScrollArea">
+          <table class="moves-table">
+            <tbody id="movesTableBody">
+              <!-- Dynamically populated with rows: 1. Sp e3-e4 | C a9-a6 -->
+            </tbody>
+          </table>
+          <div class="moves-empty-state" id="movesEmptyState">Moves will appear here as the game progresses.</div>
+        </div>
+
+        <!-- Playback Navigation Controls (|< < > >|) -->
+        <div class="playback-controls">
+          <button class="nav-btn" id="btnNavStart" title="First Move">⏮</button>
+          <button class="nav-btn" id="btnNavPrev" title="Previous Move">◀</button>
+          <button class="nav-btn nav-btn-play" id="btnNavPlay" title="Auto Play / Step">▶</button>
+          <button class="nav-btn" id="btnNavNext" title="Next Move">▶</button>
+          <button class="nav-btn" id="btnNavEnd" title="Current Move">⏭</button>
+        </div>
+
+        <!-- Match Action Buttons (½ Draw, 🏳 Resign, ↺ New Game) -->
+        <div class="panel-action-footer">
+          <button class="action-btn" id="btnNewGame">
+            <span class="action-icon">➕</span> New Game
+          </button>
+          <button class="action-btn" id="btnUndoMove" title="Undo Last Move">
+            <span class="action-icon">↺</span> Undo
+          </button>
+          <button class="action-btn online-only" id="btnOfferDraw" title="Offer a draw">
+            <span class="action-icon">½</span> Draw
+          </button>
+          <button class="action-btn online-only" id="btnResign" title="Resign this game">
+            <span class="action-icon">🏳</span> Resign
+          </button>
+          <button class="action-btn" id="btnRulesModal">
+            <span class="action-icon">📖</span> Rules
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Sub-Tab Content 2: Tower Inspector -->
+      <div class="panel-subview" id="viewInspector">
+        <div class="inspector-card">
+          <div class="inspector-title" id="inspectorSquareTitle">Square: Select a square</div>
+          <div class="inspector-content" id="inspectorContent">
+            <p class="text-muted">Tap (or hover over) any square on the board to inspect its piece, tower layers and buried Echo traits.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub-Tab Content 3: Settings & Mode -->
+      <div class="panel-subview" id="viewSettings">
+        <div class="settings-card">
+          <h4 class="settings-heading">Game Mode</h4>
+          <div class="setting-item">
+            <label for="selectGameMode">Opponent:</label>
+            <select id="selectGameMode" class="form-select">
+              <option value="PVC_DUSK" selected>Play vs Computer (Dawn)</option>
+              <option value="PVC_DAWN">Play vs Computer (Dusk)</option>
+              <option value="PVP">2-Player Pass & Play</option>
+              <option value="CVC">AI vs AI Spectator</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label for="selectAiDiff">Difficulty:</label>
+            <select id="selectAiDiff" class="form-select">
+              <option value="NOVICE">Novice (Quick)</option>
+              <option value="ADEPT" selected>Adept (Balanced)</option>
+              <option value="MASTER">Master (Deep 3-Ply)</option>
+            </select>
+          </div>
+
+          <h4 class="settings-heading" style="margin-top: 1.5rem;">Board Appearance</h4>
+          <div class="setting-item">
+            <label for="selectBoardTheme">Theme:</label>
+            <select id="selectBoardTheme" class="form-select">
+              <option value="theme-green" selected>Classic Chess.com Green</option>
+              <option value="theme-wood">Natural Walnut Wood</option>
+              <option value="theme-cosmic">Cosmic Slate & Gold</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <button class="btn btn-secondary btn-full" id="btnToggle3DSetting">Toggle 2.5D Tilt Perspective</button>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Mobile only: dims the board while the bottom sheet is open; tap to close -->
+    <div class="panel-backdrop" id="panelBackdrop"></div>
+
+  </div>
+
+  <!-- New Game Chooser: pick Simple, Eclipse or Towers (text filled from VARIANT_INFO) -->
+  <div class="modal-backdrop" id="newGameModal" style="display: none;">
+    <div class="modal-dialog modal-newgame" role="dialog" aria-modal="true" aria-labelledby="newGameTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="newGameTitle">New Game</h3>
+        <button class="modal-close-btn" id="btnCloseNewGame" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="live-stats" aria-live="polite"></div>
+      <p class="newgame-label">Which game do you want to play?</p>
+      <div class="variant-options" role="radiogroup" aria-label="Game type">
+        <button type="button" class="variant-card" data-variant="SIMPLE" role="radio" aria-checked="false">
+          <span class="variant-icon" data-field="icon"></span>
+          <span class="variant-text">
+            <span class="variant-name" data-field="name"></span>
+            <span class="variant-tag" data-field="tagline"></span>
+            <span class="variant-desc" data-field="description"></span>
+          </span>
+        </button>
+        <button type="button" class="variant-card" data-variant="ECLIPSE" role="radio" aria-checked="false">
+          <span class="variant-icon" data-field="icon"></span>
+          <span class="variant-text">
+            <span class="variant-name" data-field="name"></span>
+            <span class="variant-tag" data-field="tagline"></span>
+            <span class="variant-desc" data-field="description"></span>
+          </span>
+        </button>
+        <button type="button" class="variant-card" data-variant="TOWERS" role="radio" aria-checked="false">
+          <span class="variant-icon" data-field="icon"></span>
+          <span class="variant-text">
+            <span class="variant-name" data-field="name"></span>
+            <span class="variant-tag" data-field="tagline"></span>
+            <span class="variant-desc" data-field="description"></span>
+          </span>
+        </button>
+      </div>
+
+      <div class="newgame-settings">
+        <div class="setting-item">
+          <label for="newGameOpponent">Opponent:</label>
+          <select id="newGameOpponent" class="form-select"></select>
+        </div>
+        <div class="setting-item" id="newGameDifficultyRow">
+          <label for="newGameDifficulty">Difficulty:</label>
+          <select id="newGameDifficulty" class="form-select"></select>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-green btn-full btn-lg" id="btnStartNewGame">▶ Play</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LOGIN / SIGN UP (shown first) ================= -->
+  <div class="auth-screen" id="authScreen" style="display: none;">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <img src="icons/icon-192.png" alt="" width="64" height="64">
+        <h1>KĀRA</h1>
+        <p>Towers of Dawn &amp; Eclipse</p>
+      </div>
+      <div class="live-stats" aria-live="polite"></div>
+
+      <div class="auth-tabs" role="tablist">
+        <button type="button" class="auth-tab active" data-mode="login" role="tab">Log in</button>
+        <button type="button" class="auth-tab" data-mode="signup" role="tab">Sign up</button>
+      </div>
+
+      <form class="auth-form" id="authForm" novalidate>
+        <label for="authUsername">Username</label>
+        <input id="authUsername" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="20" required>
+        <label for="authPassword">Password</label>
+        <input id="authPassword" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+        <p class="auth-hint" id="authHint"></p>
+        <p class="auth-error" id="authError" role="alert"></p>
+        <button type="submit" class="btn btn-green btn-full btn-lg" id="authSubmit">Log in</button>
+      </form>
+
+      <div class="auth-offline" id="authOffline" style="display: none;">
+        <p>You're offline. You can still play against the computer.</p>
+        <button type="button" class="btn btn-secondary btn-full" id="btnPlayOffline">Play offline</button>
+        <button type="button" class="btn btn-secondary btn-full" id="btnRetryOnline">Try again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PROFILE ================= -->
+  <div class="modal-backdrop" id="profileModal" style="display: none;">
+    <div class="modal-dialog modal-large modal-profile" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="profileTitle">Profile</h3>
+        <button class="modal-close-btn" id="btnCloseProfile" aria-label="Close">&times;</button>
+      </div>
+      <div class="profile-body" id="profileBody">
+        <div class="profile-head">
+          <div class="profile-avatar" id="profileAvatar"></div>
+          <div class="profile-ident">
+            <div class="profile-display" id="profileDisplayName"></div>
+            <div class="profile-username" id="profileUsername"></div>
+            <div class="profile-title-row">
+              <span class="title-badge" id="profileTitleBadge"></span>
+              <span class="profile-rating" id="profileRating"></span>
+            </div>
+          </div>
+        </div>
+        <p class="profile-bio" id="profileBio"></p>
+
+        <div class="profile-stats">
+          <div class="stat"><span class="stat-num" id="statGames">0</span><span class="stat-label">Games</span></div>
+          <div class="stat"><span class="stat-num stat-win" id="statWins">0</span><span class="stat-label">Wins</span></div>
+          <div class="stat"><span class="stat-num stat-loss" id="statLosses">0</span><span class="stat-label">Losses</span></div>
+          <div class="stat"><span class="stat-num" id="statDraws">0</span><span class="stat-label">Draws</span></div>
+          <div class="stat"><span class="stat-num" id="statPeak">0</span><span class="stat-label">Peak</span></div>
+        </div>
+
+        <div class="profile-actions" id="profileOwnActions">
+          <button class="btn btn-secondary" id="btnEditProfile">✏️ Edit profile</button>
+          <button class="btn btn-secondary rail-mobile-app" id="btnProfileGetApp">📲 Get the app</button>
+          <button class="btn btn-secondary" id="btnLogout">Log out</button>
+        </div>
+
+        <form class="profile-edit" id="profileEditForm" style="display: none;" novalidate>
+          <div class="profile-photo-row">
+            <div class="profile-avatar profile-avatar-sm" id="editAvatarPreview"></div>
+            <div class="profile-photo-btns">
+              <label class="btn btn-secondary" for="editAvatarInput">📷 Change photo</label>
+              <input type="file" id="editAvatarInput" accept="image/*" hidden>
+              <button type="button" class="btn btn-secondary" id="btnRemoveAvatar">Remove photo</button>
+            </div>
+          </div>
+          <label for="editDisplayName">Name</label>
+          <input id="editDisplayName" maxlength="40" autocomplete="name">
+          <label for="editBio">Bio</label>
+          <textarea id="editBio" maxlength="300" rows="3" placeholder="A few words about you"></textarea>
+          <p class="auth-error" id="profileEditError" role="alert"></p>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnCancelEdit">Cancel</button>
+            <button type="submit" class="btn btn-green" id="btnSaveProfile">Save</button>
+          </div>
+        </form>
+
+        <div class="profile-tabs">
+          <button type="button" class="tab-btn active" data-ptab="recent">Recent games</button>
+          <button type="button" class="tab-btn" data-ptab="opponents">Opponents</button>
+        </div>
+        <div class="profile-list" id="profileRecent"></div>
+        <div class="profile-list" id="profileOpponents" style="display: none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LEADERBOARD ================= -->
+  <div class="modal-backdrop" id="leaderboardModal" style="display: none;">
+    <div class="modal-dialog modal-large" role="dialog" aria-modal="true" aria-labelledby="leaderboardTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="leaderboardTitle">🏆 Leaderboard</h3>
+        <button class="modal-close-btn" id="btnCloseLeaderboard" aria-label="Close">&times;</button>
+      </div>
+      <div class="leaderboard-scroll">
+        <div class="title-legend" id="titleLegend"></div>
+        <table class="leaderboard-table">
+          <thead><tr><th>#</th><th>Player</th><th>Rating</th><th>Games</th></tr></thead>
+          <tbody id="leaderboardBody"></tbody>
+        </table>
+        <p class="text-muted" id="leaderboardEmpty" style="display: none;">No rated games yet. Be the first!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= FINDING AN OPPONENT ================= -->
+  <div class="modal-backdrop" id="searchModal" style="display: none;">
+    <div class="modal-dialog modal-center">
+      <div class="search-spinner" aria-hidden="true"></div>
+      <h3 class="modal-title">Finding an opponent…</h3>
+      <p class="text-muted" id="searchInfo"></p>
+      <div class="live-stats" aria-live="polite"></div>
+      <div class="modal-footer modal-footer-center">
+        <button class="btn btn-secondary" id="btnCancelSearch">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= INVITE A FRIEND ================= -->
+  <div class="modal-backdrop" id="inviteModal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Invite a friend</h3>
+        <button class="modal-close-btn" id="btnCloseInvite" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-body">Send this link to your friend. The game starts as soon as they open it.</p>
+      <div class="invite-link-row">
+        <input id="inviteLink" readonly>
+        <button class="btn btn-green" id="btnCopyInvite">Copy</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnShareInvite" style="display: none;">Share…</button>
+      </div>
+      <p class="text-muted invite-waiting"><span class="search-spinner search-spinner-sm"></span> Waiting for your friend to join…</p>
+    </div>
+  </div>
+
+  <!-- ================= GET THE APP ================= -->
+  <div class="modal-backdrop" id="appModal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">📲 Get the KĀRA app</h3>
+        <button class="modal-close-btn" id="btnCloseApp" aria-label="Close">&times;</button>
+      </div>
+      <div class="app-section" data-platform="android">
+        <p>Play in the Android app: full screen, no browser bars.</p>
+        <a class="btn btn-green btn-full btn-lg" id="btnDownloadApk" href="downloads/kara.apk" download>⬇ Download APK</a>
+        <p class="text-muted app-small">After downloading, open the file. If Android asks, allow installing apps from your browser.</p>
+      </div>
+      <div class="app-section" data-platform="ios">
+        <p>On iPhone/iPad, add KĀRA to your Home Screen:</p>
+        <ol class="app-steps">
+          <li>Tap the <strong>Share</strong> button in Safari</li>
+          <li>Choose <strong>Add to Home Screen</strong></li>
+        </ol>
+      </div>
+      <div class="app-section" data-platform="desktop">
+        <p>On a laptop or PC, just play right here in your browser. 🎉</p>
+        <p class="text-muted app-small">Android user? Open this site on your phone to download the app.</p>
+      </div>
+      <button class="btn btn-secondary btn-full" id="btnInstallPwa" style="display: none;">Install from browser</button>
+    </div>
+  </div>
+
+  <!-- Update available banner (new game version or new Android app) -->
+  <div class="update-banner" id="updateBanner" role="status" aria-live="polite" style="display: none;">
+    <span class="update-icon" aria-hidden="true">⬆</span>
+    <span class="update-text" id="updateText"></span>
+    <button type="button" class="btn btn-green" id="btnUpdateAction">Update</button>
+    <button type="button" class="update-close" id="btnUpdateClose" aria-label="Later">✕</button>
+  </div>
+
+  <!-- Small notification (draw offers, errors, connection status) -->
+  <div class="toast" id="toast" role="status" aria-live="polite" style="display: none;">
+    <span class="toast-text" id="toastText"></span>
+    <span class="toast-actions" id="toastActions"></span>
+  </div>
+
+  <!-- Promotion Modal Dialog (Citadel Horizon Rule) -->
+  <div class="modal-backdrop" id="promotionModal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Citadel Promotion</h3>
+      </div>
+      <div class="modal-body">
+        <p>Your piece has entered, moved within, or exited the opponent's Citadel!</p>
+        <div class="promotion-preview" id="promotionPreview"></div>
+        <p class="modal-subtext">Awaken to its empowered Eclipse face now?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-green" id="btnPromoteYes">Awaken to Eclipse ★</button>
+        <button class="btn btn-secondary" id="btnPromoteNo">Keep Dawn Face</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Victory Modal -->
+  <div class="modal-backdrop" id="gameOverModal" style="display: none;">
+    <div class="modal-dialog modal-victory">
+      <div class="victory-crest" id="victoryCrest">👑</div>
+      <h2 class="victory-title" id="victoryTitle">Checkmate</h2>
+      <p class="victory-reason" id="victoryReason">Dawn wins the game</p>
+      <div class="victory-rating" id="victoryRating"></div>
+      <div class="modal-footer">
+        <button class="btn btn-green btn-full" id="btnPlayAgain">New Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Official Compendium & Rules Modal -->
+  <div class="modal-backdrop" id="compendiumModal" style="display: none;">
+    <div class="modal-dialog modal-large">
+      <div class="modal-header">
+        <h3 class="modal-title">KĀRA: Rulebook & Piece Compendium</h3>
+        <button class="modal-close-btn" id="btnCloseCompendium">&times;</button>
+      </div>
+      <div class="compendium-tabs">
+        <button class="tab-btn active" data-tab="tab-pieces">Pieces</button>
+        <button class="tab-btn" data-tab="tab-echoes">Echoes (Towers)</button>
+        <button class="tab-btn" data-tab="tab-rules">Core Rules & Victory</button>
+      </div>
+      <div class="compendium-content">
+        <!-- Tab 1: Pieces -->
+        <div class="tab-pane active" id="tab-pieces">
+          <div class="piece-cards-list" id="pieceCardsList"></div>
+        </div>
+        <!-- Tab 2: Echoes -->
+        <div class="tab-pane" id="tab-echoes">
+          <div class="echo-rules-grid">
+            <div class="echo-card">
+              <div class="echo-header"><span class="echo-icon">⚡</span><strong>Thrust</strong> <span class="echo-piece">(Buried Spear)</span></div>
+              <p>Top piece gains <strong>+1 extra square</strong> of movement when advancing straight forward.</p>
+            </div>
+            <div class="echo-card">
+              <div class="echo-header"><span class="echo-icon">🛡️</span><strong>Aegis</strong> <span class="echo-piece">(Buried Bastion)</span></div>
+              <p>When this tower is attacked, the attacker captures the <strong>lowest buried Bastion</strong> instead of the top piece! Attacker stays on origin.</p>
+            </div>
+            <div class="echo-card">
+              <div class="echo-header"><span class="echo-icon">🌀</span><strong>Vault</strong> <span class="echo-piece">(Buried Scout)</span></div>
+              <p>Top piece may <strong>leap over up to 1 intervening piece</strong> along a straight or diagonal ray path.</p>
+            </div>
+            <div class="echo-card">
+              <div class="echo-header"><span class="echo-icon">🐎</span><strong>Gallop</strong> <span class="echo-piece">(Buried Rider)</span></div>
+              <p>Top piece <strong>also gains the Rider’s L-shape leap</strong> (2×1 in all 8 directions).</p>
+            </div>
+            <div class="echo-card">
+              <div class="echo-header"><span class="echo-icon">👁️</span><strong>Horizon</strong> <span class="echo-piece">(Buried Chariot)</span></div>
+              <p>Top piece gains <strong>+2 range</strong> to any directional step or slide it can perform.</p>
+            </div>
+            <div class="echo-card">
+              <div class="echo-header"><span class="echo-icon">✨</span><strong>Phase</strong> <span class="echo-piece">(Buried Mystic)</span></div>
+              <p>Top piece <strong>also gains 1-step diagonal movement</strong> in all 4 diagonal directions.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Tab 3: Core Rules -->
+        <div class="tab-pane" id="tab-rules">
+          <div class="rules-guide-text">
+            <h4>Game Types</h4>
+            <p><strong>♟ Simple:</strong> move and capture only. No promotion and no stacking. Check, checkmate and Ascension still apply. Start here if you are new.</p>
+            <p><strong>🌘 Eclipse:</strong> Simple plus <em>Citadel promotion</em> (rule 3 below): reach the opponent's Citadel and your piece may awaken to its Eclipse face. Still no stacking.</p>
+            <p><strong>🏯 Towers:</strong> the full game: Eclipse promotion plus stacking, Echo traits, peeling strikes and Aegis.</p>
+            <h4>1. Movement & Towers</h4>
+            <p>You may move a standalone piece or the top piece of a friendly tower. Towers stack up to a maximum height of 3 tiers. Sovereigns cannot stack and cannot be stacked upon.</p>
+            <h4>2. Peeling Strikes</h4>
+            <p>When attacking an enemy tower of height 2 or 3 (without Aegis), you capture only the top piece into your trophies and stay on your origin square, peeling the layer!</p>
+            <h4>3. Citadel Horizon Promotion</h4>
+            <p>Moving into, within, or out of the opponent's Citadel (ranks 7–9 for Dawn, ranks 1–3 for Dusk) allows you to awaken that piece to its Eclipse face!</p>
+            <h4>4. Ascension (Zenith Victory)</h4>
+            <p>If your Sovereign occupies <strong>The Zenith (e5)</strong> and survives one full opponent turn without being placed in Check, you win by Ascension!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

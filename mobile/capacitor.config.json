@@ -1,0 +1,15 @@
+{
+  "appId": "game.kara.app",
+  "appName": "KĀRA",
+  "webDir": "www",
+  "server": {
+    "url": "https://kara.kara-game.workers.dev",
+    "cleartext": false,
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "appendUserAgent": "KaraApp/1.1 KaraBuild/2",
+    "backgroundColor": "#302e2b",
+    "allowMixedContent": false
+  }
+}

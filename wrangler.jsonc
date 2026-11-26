@@ -1,0 +1,36 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kara",
+  "main": "worker/index.js",
+  "compatibility_date": "2025-09-01",
+  "workers_dev": true,
+
+  // Static game files. Unknown paths (/api/*, /ws/*) fall through to the Worker.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kara-db",
+      "database_id": "da85ea26-790b-45d7-9123-cced9d6b4ee1",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "GAME_ROOM", "class_name": "GameRoom" },
+      { "name": "LOBBY", "class_name": "Lobby" }
+    ]
+  },
+
+  // SQLite-backed Durable Objects (available on the Workers Free plan).
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["GameRoom", "Lobby"] }
+  ],
+
+  "observability": { "enabled": true }
+}

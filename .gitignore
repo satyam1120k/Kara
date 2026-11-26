@@ -1,0 +1,5 @@
+node_modules/
+.wrangler/
+.dev.vars
+# Android app signing key: back up separately, never commit
+mobile/keystore/

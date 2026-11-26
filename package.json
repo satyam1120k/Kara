@@ -1,0 +1,17 @@
+{
+  "name": "kara-game",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "KĀRA: Towers of Dawn & Eclipse",
+  "scripts": {
+    "test": "node tests/test_rules.js",
+    "dev": "wrangler d1 migrations apply kara-db --local && wrangler dev",
+    "db:migrate": "wrangler d1 migrations apply kara-db --remote",
+    "deploy": "node scripts/stamp-version.mjs && wrangler deploy",
+    "release:app": "node scripts/build-apk.mjs && npm run deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.168.0"
+  }
+}

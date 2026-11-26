@@ -1,0 +1,7 @@
+node_modules/
+# App signing key: back these up somewhere safe, never commit or share them.
+keystore/
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
