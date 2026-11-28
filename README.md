@@ -8,7 +8,7 @@
 | **Board**              | 9×9 Grid (`a1–i9`)                                                               |
 | **Components**         | 32 Double-Sided Pieces _(16 per player)_                                         |
 | **Estimated Playtime** | 25–45 minutes                                                                    |
-| **Core Influences**    | Chess _(geometry)_, Shogi _(rebirth & promotion)_, Gungi _(3D stacking & draft)_ |
+| **Core Influences**    | Chess _(geometry)_, Shogi _(promotion)_, Gungi _(3D stacking & draft)_ |
 
 ---
 
